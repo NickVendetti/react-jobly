@@ -11,6 +11,7 @@ const { createToken } = require("../helpers/tokens");
 const userAuthSchema = require("../schemas/userAuth.json");
 const userRegisterSchema = require("../schemas/userRegister.json");
 const { BadRequestError } = require("../expressError");
+const { ensureLoggedIn } = require("../middleware/auth");
 
 /** POST /auth/token:  { username, password } => { token }
  *
@@ -19,7 +20,7 @@ const { BadRequestError } = require("../expressError");
  * Authorization required: none
  */
 
-router.post("/token", async function (req, res, next) {
+router.post("/token", async function(req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, userAuthSchema);
     if (!validator.valid) {
@@ -36,7 +37,6 @@ router.post("/token", async function (req, res, next) {
   }
 });
 
-
 /** POST /auth/register:   { user } => { token }
  *
  * user must include { username, password, firstName, lastName, email }
@@ -46,7 +46,7 @@ router.post("/token", async function (req, res, next) {
  * Authorization required: none
  */
 
-router.post("/register", async function (req, res, next) {
+router.post("/register", async function(req, res, next) {
   try {
     const validator = jsonschema.validate(req.body, userRegisterSchema);
     if (!validator.valid) {
@@ -62,5 +62,13 @@ router.post("/register", async function (req, res, next) {
   }
 });
 
+router.get("/me", ensureLoggedIn, async function(req, res, next) {
+  try {
+    const user = await User.get(res.locals.user.username);
+    return res.json({ user });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 module.exports = router;
